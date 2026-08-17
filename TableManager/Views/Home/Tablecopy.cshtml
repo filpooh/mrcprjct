@@ -1,0 +1,134 @@
+﻿@model CsvDto
+
+@if (Model == null)
+{
+    <p>Nessuna tabella trovata.</p>
+}
+else
+{
+    <ul class="nav nav-tabs" id="myTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="home-tab" data-bs-toggle="tab" data-bs-target="#settings"
+                    type="button" role="tab">
+                Settings
+            </button>
+        </li>
+
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#data"
+                    type="button" role="tab">
+                Data
+            </button>
+        </li>
+
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="advanced-tab" data-bs-toggle="tab" data-bs-target="#advanced"
+                    type="button" role="tab">
+                Statistiche modelli generati
+            </button>
+        </li>
+    </ul>
+    <div class=" tab-content mt-3" id="tab content">
+        <div class="tab-pane fade show active" id="settings" role="tabpanel">
+            <div id="tableSettingDiv"></div>
+            <button id="generateModel" class="btn btn-primary mt-2">
+                Genera Modello
+            </button>
+            
+            <script>
+                document.getElementById("generateModel").addEventListener("click", function () {
+
+                    const type = document.getElementsByName("selectModel")[0].value;
+
+                                    fetch(`/MlInterface/Index?name=@Model.Name&tableId=@Model.Id&type=${type}`)
+                        .then(r => r.json())
+                        .then(data => {
+                            console.log("Risposta:", data);
+                            alert("Modello generato!");
+                        })
+                        .catch(err => console.error(err));
+                });
+            </script>
+            <select name="selectModel" class="form-control">
+                <option value="0" selected>seleziona il tipo di regressione</option> 
+                <option value="1">Lineare</option>
+                <option value="2">Opzione 2</option>
+                <option value="3">Opzione 3</option>
+            </select>
+            <div>
+                <div>
+                    <label>
+                    <input type ="checkbox" id="normalize" checked />
+                        normalizzazione dei dati
+                    </label>
+                </div>
+                devo rendere disable gli altri check in base a normalize
+                <div class="mt-4">  
+                    @foreach (var header in Model.HeaderJson)
+                    {
+                        <div>
+                            <label>
+                                <input type="checkbox" id=@header /> 
+                                @header
+                            </label>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div>
+                <div>
+                    <select name="fillValueSelect" class="form-control">
+                        <option value="0" selected>Nessun riempimento</option>
+                        <option value="1">Media</option>
+                        <option value="2">Mediana</option>+
+                        <option value="3">Valore Personalizzato</option>
+                    </select>
+                </div>
+                <div>
+                    <input type="checkbox" class="form-control"style="display:none"/>
+                </div>
+            </div>
+            <div>
+                <div>
+                    <button id="checkDataSetting" class="btn btn-primary">Verifica Dati</button>
+                </div>
+                <div>
+                    <button id="submitSetting" class="btn btn-primary disabled">Importa modifiche</button>
+                </div>
+            </div>
+            <div>
+                <div>
+                    <button id="getErrorRows" class="btn btn-primary ">Visualizza righe non corrette</button>
+                </div>
+            </div>
+            spostare tutti i button
+            dividere in card
+            altre opzioni da inviare alla pagina
+        </div>
+        <div class="text-center tab-pane fade" id="data" role="tabpanel">
+            <label>File @Model.Name</label>
+
+            <div>
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            @foreach (var header in Model.HeaderJson)
+                            {
+                                <th>@header</th>
+                            }
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @foreach (var row in Model.Values)
+                        {
+                            <tr>
+                                <!--valori delle celle-->
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}

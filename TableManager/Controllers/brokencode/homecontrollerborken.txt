@@ -1,0 +1,354 @@
+﻿ public IActionResult SubmitTable(IFormFile file, string headers, string name)
+        {
+            /*var selectedHeaders = JsonSerializer.Deserialize<List<string>>(headers);
+
+            using var reader = new StreamReader(file.OpenReadStream());
+
+            var firstLine = reader.ReadLine();
+            var originalHeaders = firstLine.Split(',');
+
+            var indicesToKeep = originalHeaders
+                .Select((h, i) => new { h, i })
+                .Where(x => selectedHeaders.Contains(x.h))
+                .Select(x => x.i)
+                .ToList();
+
+            var rows = new List<string[]>();
+
+            while (!reader.EndOfStream)
+            {
+                var parts = reader.ReadLine().Split(',');
+                var filtered = indicesToKeep.Select(i => parts[i]).ToArray();
+                rows.Add(filtered);
+            }
+
+            // SALVATAGGIO NEL DB 
+
+            var table = new TableProp
+            {
+                Name = name,
+                UserId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+            };
+
+            _context.TableProps.Add(table);
+            _context.SaveChanges();
+
+            // 2. Crea gli header
+            var headerEntities = selectedHeaders
+                .Select((h, index) => new Header
+                {
+                    Value = h,
+                    TablePropId = table.Id,
+                    Column = index + 1
+                })
+                .ToList();
+
+            _context.Headers.AddRange(headerEntities);
+            _context.SaveChanges();
+
+            // 3. Crea le righe + celle
+            foreach (var rowValues in rows)
+            {
+                var row = new TableRow
+                {
+                    TablePropId = table.Id
+                };
+
+                _context.TableRows.Add(row);
+                _context.SaveChanges();
+
+                for (int colIndex = 0; colIndex < rowValues.Length; colIndex++)
+                {
+                    var cell = new Cell
+                    {
+                        TableRowId = row.Id,
+                        ColumnIndex = colIndex,
+                        Value = rowValues[colIndex]
+                    };
+
+                    _context.Cells.Add(cell);
+                }
+
+                _context.SaveChanges();
+            }
+
+            return Ok(new { message = "Tabella salvata", tableId = table.Id, redirect = "/Home/Index" });
+            // devo aggiungere l'inserimento dei dati
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            /*var t = _context.TableProps.FirstOrDefault(t => t.Name == model.Name && t.UserId == userId);
+            if (userId == null)
+                return BadRequest("User is not authenticated");
+            if (!ModelState.IsValid) 
+                return BadRequest("Model is not valid");
+            if(t != null)
+                return BadRequest("Table with this name already exists");
+            
+            var table = new TableProp
+            {
+                Name = model.Name,
+                UserId = userId
+            };
+            _context.TableProps.Add(table);
+            _context.SaveChanges();
+            foreach (var h in model.Headers) { 
+                var header = new Header
+                {
+                    Value = h,
+                    TablePropId = table.Id
+                };
+                _context.Headers.Add(header);
+            }
+            _context.SaveChanges();*/
+            /*
+           return Ok(new { message = "done", redirect = "/Home/Index" });//return json
+            //return View(Index);
+            */
+        }
+ 
+
+
+ /* [HttpPost]
+         public IActionResult UploadCsv(IFormFile file, bool mode)
+         {
+             if (file == null || file.Length == 0)
+                 return BadRequest("File mancante");
+
+             var rows = new List<List<string>>();
+
+             using (var reader = new StreamReader(file.OpenReadStream()))
+             {
+                 while (!reader.EndOfStream)
+                 {
+                     var line = reader.ReadLine();
+                     var parts = line.Split(',');
+
+                     // Se mode = true puoi scartare colonne
+                     if (mode)
+                         parts = parts.Skip(1).ToArray(); // esempio: scarta la prima colonna
+
+                     rows.Add(parts.ToList());
+                 }
+             }
+                 //da qui torno gli header per poi fare l'update 
+
+             return Ok(rows);
+         }*/
+
+         public IActionResult Table(int id){
+         //posso rimuovere tutto e al massimo far ritornare l'id della tabella e basta
+            //var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            /*var t = _context.TableProps.Find(id);
+            var table = _context.TableProps
+            .Include(t => t.Headers)
+            .Include(t => t.Rows)
+                .ThenInclude(r => r.Cells)
+            .FirstOrDefault(t => t.Id == id);
+
+            if (t == null || table == null)
+                return BadRequest("tabella non trovata");
+            var headers = table.Headers
+                 .OrderBy(h => h.Id)
+                 .Select(h => h.Value)
+                 .ToList();
+            var values = new List<List<string>>();
+
+            foreach (var row in table.Rows)
+            {
+                var orderedCells = row.Cells
+                    .OrderBy(c => c.ColumnIndex)
+                    .Select(c => c.Value)
+                    .ToList();
+
+                values.Add(orderedCells);
+            }
+            var dto = new CsvDto
+            {
+                Id = id,
+                Name = table.Name,
+                Headers = headers,
+                Values = values
+            };
+
+            return View(dto);*/
+         }
+                 private void oldSaveDataFrame(int fileId, DataFrame df)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            // 1. Serializzo l'header
+            var header = df.Columns.Select(c => c.Name).ToList();
+            string headerJson = JsonSerializer.Serialize(header);
+            var mlCsv = _context.MlCsv
+                .Include(x => x.Rows).Include(x=>x.Setting)
+                .FirstOrDefault(x => x.IdCsv == fileId && x.UserId == userId);
+            Setting setting = _context.Settings.FirstOrDefault(s => s.MlId == mlCsv.SettingId);
+            
+            
+            var newRows = df.Rows
+                .Select((row, index) => new
+                {
+                    NumeroRiga = index,
+                    DataJson = JsonSerializer.Serialize(row.Select(c => c?.ToString() ?? "").ToList())
+                })
+                .ToList();
+
+            if (mlCsv == null)
+            {
+
+                // Creazione da zero
+                mlCsv = new MlCsv
+                {
+                    UserId = userId,
+                    IdCsv = fileId,
+                    Name = "ML_" + fileId,
+                    Stato = 0,
+                    HeaderJson = headerJson,
+                    SettingId = setting.Id
+                };
+                if (setting == null)
+                {
+                    setting = new Setting
+                    {
+                        MlId = mlCsv.Id,
+                        Fill = "",
+                    };
+
+                    _context.Settings.Add(setting);
+                    _context.SaveChanges();
+                }
+                _context.MlCsv.Add(mlCsv);
+                _context.SaveChanges();
+
+                // Inserisco tutte le righe nuove
+                foreach (var r in newRows)
+                {
+                    _context.MlCsvRows.Add(new MlCsvRow
+                    {
+                        MlCsvId = mlCsv.Id,
+                        NumeroRiga = r.NumeroRiga,
+                        DataJson = r.DataJson
+                    });
+                }
+
+                _context.SaveChanges();
+            }
+            else
+            {
+                // Aggiorno header
+                mlCsv.HeaderJson = headerJson;
+
+                // Aggiorno o creo righe
+                for (int i = 0; i < newRows.Count; i++)
+                {
+                    var newRow = newRows[i];
+
+                    var existingRow = mlCsv.Rows.FirstOrDefault(r => r.NumeroRiga == i);
+
+                    if (existingRow != null)
+                    {
+                        // Aggiorno la riga esistente
+                        existingRow.DataJson = newRow.DataJson;
+                    }
+                    else
+                    {
+                        // Creo una nuova riga
+                        _context.MlCsvRows.Add(new MlCsvRow
+                        {
+                            MlCsvId = mlCsv.Id,
+                            NumeroRiga = newRow.NumeroRiga,
+                            DataJson = newRow.DataJson
+                        });
+                    }
+                }
+
+                // Elimino righe in eccesso
+                var extraRows = mlCsv.Rows.Where(r => r.NumeroRiga >= newRows.Count).ToList();
+                _context.MlCsvRows.RemoveRange(extraRows);
+
+                _context.SaveChanges();
+            }
+        }
+        public CsvDto OLDGetTableData(int id)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var t = _context.FileCsvs.Where(k => k.Id == id && k.UserId == userId).FirstOrDefault();
+            if (userId == null)
+                return null;
+            var table = _context.FileCsvs
+                .Where(t => t.Id == id && t.UserId == userId)
+                .Select(t => new CsvDto
+                {
+                    Id = t.Id,
+                    Name = t.FileName,
+                    UserId = t.UserId,
+
+                    // header del FileCsv
+                    HeaderJson = JsonSerializer.Deserialize<List<string>>(t.HeaderJson),
+                    // righe del CSV
+                    Values = t.Rows.Select(r => new List<string> {
+                        r.NumeroRiga.ToString(), r.DataJson })
+                            .ToList()
+                }).FirstOrDefault();
+
+            if (!table.HeaderJson.Contains("Id") && !table.HeaderJson.Contains("id"))
+            {
+                if (table.HeaderJson.Contains(""))//potrebbe essere errata come funzione e magari dare controllo all'user
+                {
+                    // Deserializzo tutte le righe
+                    var allRows = table.Values
+                        .Select(v => JsonSerializer.Deserialize<List<string>>(v[1]))
+                        .ToList();
+
+                    // Estraggo la prima colonna
+                    var firstColumn = allRows.Select(r => r[0]).ToList();
+
+                    // Controllo se è una progressione numerica valida (0,1,2,3,...)
+                    bool isNumericProgression =
+                        firstColumn.All(x => int.TryParse(x, out _)) &&
+                        firstColumn.Select(int.Parse).SequenceEqual(
+                            Enumerable.Range(0, firstColumn.Count)
+                        );
+
+                    if (isNumericProgression)
+                    {
+                        // Se è una progressione → aggiungo "Id" all'header
+                        //quindi prendo la tabella e la salvo
+                        int emptyIndex = table.HeaderJson.IndexOf("");
+                        var editTable = _context.FileCsvs.Where(t => t.Id == id && t.UserId == userId).FirstOrDefault();
+                        table.HeaderJson[emptyIndex] = "Id";
+                        editTable.HeaderJson = JsonSerializer.Serialize(table.HeaderJson);
+                        _context.FileCsvs.Update(editTable);
+                        _context.SaveChanges();
+                        table.Values = allRows;
+                    }
+                }
+                else
+                {
+                    table.HeaderJson.Insert(0, "Id");
+                    var finalRows = new List<List<string>>();
+
+                    foreach (var r in table.Values)
+                    {
+                        // deserializzo DataJson
+                        var cells = JsonSerializer.Deserialize<List<string>>(r[1]);
+
+                        // aggiungo NumeroRiga come prima colonna
+                        cells.Insert(0, r[0]);
+
+                        finalRows.Add(cells);
+                    }
+                    table.Values = finalRows;
+                }
+            }
+            else
+            {
+                var finalRows = new List<List<string>>();
+                foreach (var r in table.Values)
+                    finalRows.Add(JsonSerializer.Deserialize<List<string>>(r[1]));
+                table.Values = finalRows;
+            }
+            if (table == null)
+                return null;
+
+            return table;
+        }

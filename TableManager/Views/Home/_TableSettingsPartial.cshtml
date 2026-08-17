@@ -1,0 +1,211 @@
+﻿@model CsvDto
+@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+}
+<!--
+    <a class="card-body text-decoration-none text-dark" asp-controller="Home" asp-action="AddTable"></a>
+    controlla js partialviewtable.js per poter fare la visualizzazione
+
+-->
+<div>
+
+    <div class="mt-3">
+        <select id="selectModel" class="form-control">
+            <option value="0" selected>seleziona il tipo di regressione</option>
+            <option value="1">Lineare</option>
+            <option value="2">Opzione 2</option>
+            <option value="3">Opzione 3</option>
+        </select>
+    </div>
+    <div id="regressionCard" class="card mt-3" style="display:none">
+        <div class="card-body ">
+            <label class="mt-2">
+                <span>seleziona i dati su cui effettuare la generazione del modello</span>
+            </label>
+            <div id="headers-container-regression" class="row mt-2">
+                @{
+                    int m = 0;
+                    for (int i = 0; i < Model.HeaderJson.Count;i++)
+                    {
+                        if (@Model.HeaderJson[i].ToLower() == "id")
+                            continue;
+                        // Ogni 2 elementi apro una nuova colonna
+                        if (m % 5 == 0)
+                        {
+                            @:<div class="mb-3">
+                        }
+                        /*
+                        * 
+                        *   1. Uso col-6 → 2 colonne su mobile
+                            2. Uso col-md-4 → 3 colonne su desktop medio
+                            3. Uso col-lg-3 → 4 colonne su desktop grande
+                            */
+
+                    <label class="form-check">
+                        <input class="form-check-input" type="checkbox" id="@i">
+                        <span class="form-check-label">@Model.HeaderJson[i]</span>
+                    </label>
+
+                        m++;
+
+                        // Chiudo la colonna ogni 2 elementi
+                        if (m % 5 == 0)
+                        {
+                            @:</div>
+                        }
+                    }
+
+                    // Chiudo l'ultima colonna se rimane aperta
+                    if (m % 5 != 0)
+                    {
+                        @:</div>
+                    }
+                }
+            </div><!--div dei checkbox-->
+        </div>
+    </div>
+    <div class="card mt-3">
+        <div class="card-body row">
+            <div class="col-6"> 
+                <!--NORMALIZE SECTION-->
+            <label class="mt-2">
+                <span>seleziona le colonne da normalizzare</span>
+            </label>
+                <div id="headers-container-normalize" class="row mt-2">
+                    @{
+                        int count = 0;
+                        for (int i = 0; i < Model.HeaderJson.Count;i++)
+                        {
+                            if (@Model.HeaderJson[i].ToLower() == "id")
+                                continue;
+                            // Ogni 2 elementi apro una nuova colonna
+                            if (count % 5 == 0)
+                            {
+                                @:<div class="mb-3">
+                            }
+                            /*
+                            * 
+                            *   1. Uso col-6 → 2 colonne su mobile
+                                2. Uso col-md-4 → 3 colonne su desktop medio
+                                3. Uso col-lg-3 → 4 colonne su desktop grande
+                             */
+
+                        <label class="form-check">
+                            <input class="form-check-input" type="checkbox" id="@i">
+                            <span class="form-check-label">@Model.HeaderJson[i]</span>
+                        </label>
+
+                            count++;
+
+                            // Chiudo la colonna ogni 2 elementi
+                            if (count % 5 == 0)
+                            {
+                                @:</div>
+                            }
+                        }
+
+                        // Chiudo l'ultima colonna se rimane aperta
+                        if (count % 5 != 0)
+                        {
+                            @:</div>
+                        }
+                    }
+                </div><!--div dei checkbox-->
+                <div class="mt-3">
+                    <button id="normalize-column-btn" class="btn btn-primary">Normalizza dati</button>
+                </div>
+            </div>
+            <!--DUMMY SECTION-->
+            <div class="col-6">
+                <label class="mt-2">
+                    <span>seleziona le colonne da convertire in dummy</span>
+                </label>
+                <div id="headers-container-dummy" class="row mt-2">
+                    @{
+                        int n = 0;
+                        for (int i = 0; i < Model.HeaderJson.Count;i++)
+                        {
+                            if (@Model.HeaderJson[i].ToLower() == "id")
+                                continue;
+                            // Ogni 2 elementi apro una nuova colonna
+                            if (n % 5 == 0)
+                            {
+                                @:<div class="mb-3">
+                            }
+
+                        <label class="form-check">
+                            <input class="form-check-input" type="checkbox" id="@i">
+                            <span class="form-check-label">@Model.HeaderJson[i]</span>
+                        </label>
+
+                            n++;
+
+                            if (n % 5 == 0)
+                            {
+                                @:</div>
+                            }
+                        }
+
+                        if (n % 5 != 0)
+                        {
+                            @:</div>
+                        }
+                    }
+                </div><!--div dei checkbox-->
+                <div class="mt-3">
+                    <button id="dummy-column-btn" class="btn btn-primary">trasforma in colonne dummy</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card mt-3">
+        <div class="card-body">
+            <div class="d-flex">
+                <div class="me-4">
+                    <select name="fillValueSelect" id="fillValueSelect" class="form-control">
+                        <option value="0" selected>Nessun riempimento</option>
+                        <option value="1">Media</option>
+                        <option value="2">Mediana</option>
+                        <option value="3">Valore Personalizzato</option>
+                    </select>
+                </div>
+                <div id="empty-value-div" class="me-4" style="display:none">
+                    <input id="empty-value-sub" type="text" class="form-control" style="display:none" />
+                </div>
+                <div>
+                    <button id ="empty-value-fill" class="btn btn-primary" style="display:none"> modifica valori</button> 
+                </div>
+            </div>
+    
+            <div class="mt-3">
+                <button id="checkDataSetting" class="btn btn-primary">Verifica Dati</button>
+                <div class ="card mt-2"id="error-list" style="display:none">
+                    <div id="sub-card-body" class="card-body">
+                        <table>
+                            
+                        </table>
+                    colonne con valori vuoti!
+                    devo fare un append delle righe con errori mettendo se possibile anche il valore che da problemi
+                    oppure posso mandare ad una pagina che mostra le celle con gli errori
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="error-row-div" class="card mt-3" style="display:none">
+        <div class="card-body">
+            <input type="text" class="form-control" />deve essere un multiline
+        </div>
+    </div>
+    <div class="card mt-3">
+        <div class="card-body">
+            <div class="">
+                <button id="generateModel" class="btn btn-primary mt-2">
+                    Genera Modello
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

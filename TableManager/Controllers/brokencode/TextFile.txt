@@ -1,0 +1,392 @@
+﻿                private FileCsv AddMinMax(FileCsv table) {
+
+            // Dizionari per min e max
+            Dictionary<string, long> minValues = new();
+            Dictionary<string, long> maxValues = new();
+
+            foreach (var row in table.Rows)
+            {
+                if (string.IsNullOrWhiteSpace(row.DataJson))
+                    continue;
+
+                // Deserializza la riga
+                var dict = JsonSerializer.Deserialize<Dictionary<string, object>>(row.DataJson);
+                if (dict == null)
+                    continue;
+
+                foreach (var kv in dict)
+                {
+                    string col = kv.Key;
+                    object? val = kv.Value;
+
+                    // Consideriamo solo valori numerici interi
+                    if (val is JsonElement je && je.ValueKind == JsonValueKind.Number && je.TryGetInt64(out long num))
+                    {
+                        if (!minValues.ContainsKey(col))
+                        {
+                            minValues[col] = num;
+                            maxValues[col] = num;
+                        }
+                        else
+                        {
+                            if (num < minValues[col]) minValues[col] = num;
+                            if (num > maxValues[col]) maxValues[col] = num;
+                        }
+                    }
+                    else if (val is long num2) // caso raro: già long
+                    {
+                        if (!minValues.ContainsKey(col))
+                        {
+                            minValues[col] = num2;
+                            maxValues[col] = num2;
+                        }
+                        else
+                        {
+                            if (num2 < minValues[col]) minValues[col] = num2;
+                            if (num2 > maxValues[col]) maxValues[col] = num2;
+                        }
+                    }
+                }
+            }
+
+            // Serializza nei campi del modello
+            table.MinJson = JsonSerializer.Serialize(minValues);
+            table.MaxJson = JsonSerializer.Serialize(maxValues);
+
+            return table;
+        }
+        private Dictionary<string, long> SafeDeserializeMinMax(string? json)
+        {
+            if (string.IsNullOrWhiteSpace(json))
+                return new Dictionary<string, long>();
+
+            try
+            {
+                return JsonSerializer.Deserialize<Dictionary<string, long>>(json)
+                       ?? new Dictionary<string, long>();
+            }
+            catch
+            {
+                return new Dictionary<string, long>();
+            }
+        }
+        public IActionResult NormalizeValue(int id,List<int> header)//header in questo caso mi dice quale colonna
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var mlcsv = _context.MlCsv.Where(k => k.IdCsv == id).FirstOrDefault();
+            var table = _context.FileCsvs.Where(k => k.Id == id && k.UserId == userId).FirstOrDefault();
+            var tableHeader = JsonSerializer.Deserialize<List<string>>(table.HeaderJson);
+            if (mlcsv == null)  
+                mlcsv = CreateNewMlCsv(id,table,tableHeader,userId);
+            var minDict = SafeDeserializeMinMax(table.MinJson);
+            var maxDict = SafeDeserializeMinMax(table.MaxJson);
+
+            if (minDict.Count == 0 || maxDict.Count == 0)
+            
+                table = AddMinMax(table);
+            
+
+            var rows =  _context.CsvRows
+                .Where(r => r.FileId == id)
+                .ToList();
+            //devo fare delle prove con una singola riga per vedere cosa ottengo con il serialize
+            List<MlCsvRow> mlCsvRows = new List<MlCsvRow>();
+            for(int i = 0; i < rows.Count; i++)
+            {
+                var r = JsonSerializer.Deserialize<List<string>>(rows[i].DataJson);
+                //var arr = JsonSerializer.Deserialize<List<string>>(row.DataJson);
+                foreach (var h in header)
+                {
+                    r[h] = "Nuovo valore";//da inserire la funzione di normalizzazione
+                }
+                mlCsvRows.Add(new MlCsvRow { 
+                    DataJson = JsonSerializer.Serialize(r),
+                    NumeroRiga = i,
+                    MlCsv = mlcsv ,
+                    MlCsvId = mlcsv.Id
+                });
+                _context.MlCsvRows.Add(mlCsvRows[i]);
+            }
+
+            //mlcsv.Rows = mlCsvRows;
+            _context.SaveChanges();
+            //per normalizzare gli header poi dovrei anche inserire la possibilità di
+            //creare colonne dummy oppure one hot encoder o altro 
+            //quindi devo modificare la view per permettermi di fare ciò
+
+            //funzione normalizzazione
+            //return 2 * ((value - min) / (max - min)) - 1; ritorna un double
+            return Ok(new { message = "done"  });
+        }
+        public IActionResult OLDDummyColumn(int id, List<int> header)
+        {
+            //non funzione il db salva 1
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var mlcsv = _context.MlCsv.FirstOrDefault(k => k.IdCsv == id);
+            var table = _context.FileCsvs.FirstOrDefault(k => k.Id == id && k.UserId == userId);
+
+            if (table == null)
+                return NotFound(new { message = "file not found" });
+
+            var tableHeader = JsonSerializer.Deserialize<List<string>>(table.HeaderJson);
+
+            if (mlcsv == null)
+                mlcsv = CreateNewMlCsv(id, table, tableHeader, userId);
+
+            // 1. Prendo le righe ML se esistono, altrimenti le originali
+            var mlRows = _context.MlCsvRows
+                .Where(r => r.MlCsvId == mlcsv.Id)
+                .OrderBy(r => r.NumeroRiga)
+                .ToList();
+
+            List<List<string>> sourceRows;
+
+            if (mlRows.Count > 0)
+            {
+                sourceRows = mlRows
+                    .Select(r => JsonSerializer.Deserialize<List<string>>(r.DataJson))
+                    .ToList();
+            }
+            else
+            {
+                var csvRows = _context.CsvRows
+                    .Where(c => c.FileId == table.Id)
+                    .OrderBy(c => c.NumeroRiga)
+                    .ToList();
+
+                sourceRows = csvRows
+                    .Select(r => JsonSerializer.Deserialize<List<string>>(r.DataJson))
+                    .ToList();
+            }
+
+            // 2. Cancello eventuali righe ML precedenti
+            var oldMlRows = _context.MlCsvRows.Where(r => r.MlCsvId == mlcsv.Id).ToList();
+            _context.MlCsvRows.RemoveRange(oldMlRows);
+            _context.SaveChanges();
+
+            // 🔥 IMPORTANTE: scollega tutto il tracking
+            _context.ChangeTracker.Clear();
+
+            // 3. Genero le dummy columns
+            foreach (var colIndex in header)
+            {
+                var uniqueValues = sourceRows
+                    .Select(r => r[colIndex])
+                    .Where(v => !string.IsNullOrEmpty(v))
+                    .Distinct()
+                    .ToList();
+
+                int rowIndex = 0;
+
+                foreach (var row in sourceRows)
+                {
+                    var cellValue = row[colIndex];
+
+                    // 🔥 Dummy vector come stringhe (come pandas.get_dummies)
+                    List<string> dummyVectorString = new();
+
+                    foreach (var uv in uniqueValues)
+                        dummyVectorString.Add(cellValue == uv ? "1" : "0");
+
+                    var mlRow = new MlCsvRow
+                    {
+                        MlCsvId = mlcsv.Id,
+                        NumeroRiga = rowIndex,
+                        DataJson = JsonSerializer.Serialize(dummyVectorString)
+                    };
+
+                    _context.MlCsvRows.Add(mlRow);
+                    rowIndex++;
+                }
+            }
+
+            _context.SaveChanges();
+
+            return Ok(new
+            {
+                message = "done"
+                
+            });
+        }
+        public IActionResult ooldDummyColumn(int id, List<int> header)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var mlcsv = _context.MlCsv.FirstOrDefault(k => k.IdCsv == id);
+            var table = _context.FileCsvs.FirstOrDefault(k => k.Id == id && k.UserId == userId);
+
+            if (table == null)
+                return NotFound(new { message = "file not found" });
+
+            var tableHeader = JsonSerializer.Deserialize<List<string>>(table.HeaderJson);
+
+            if (mlcsv == null)
+                mlcsv = CreateNewMlCsv(id, table, tableHeader, userId);
+
+            // 1. Prendo le righe ML se esistono, altrimenti le originali
+            var mlRows = _context.MlCsvRows
+                .Where(r => r.MlCsvId == mlcsv.Id)
+                .OrderBy(r => r.NumeroRiga)
+                .ToList();
+
+            List<List<string>> sourceRows;
+
+            if (mlRows.Count > 0)
+            {
+                sourceRows = mlRows
+                    .Select(r => JsonSerializer.Deserialize<List<string>>(r.DataJson))
+                    .ToList();
+            }
+            else
+            {
+                var csvRows = _context.CsvRows
+                    .Where(c => c.FileId == table.Id)
+                    .OrderBy(c => c.NumeroRiga)
+                    .ToList();
+
+                sourceRows = csvRows
+                    .Select(r => JsonSerializer.Deserialize<List<string>>(r.DataJson))
+                    .ToList();
+            }
+
+            // 2. Cancello eventuali righe ML precedenti
+            var oldMlRows = _context.MlCsvRows.Where(r => r.MlCsvId == mlcsv.Id).ToList();
+            _context.MlCsvRows.RemoveRange(oldMlRows);
+            _context.SaveChanges();
+            _context.ChangeTracker.Clear();
+
+            // 3. Preparo le righe ML vuote (una per ogni riga del dataset)
+            var mlRowsData = new List<List<string>>();
+            for (int i = 0; i < sourceRows.Count; i++)
+                mlRowsData.Add(new List<string>());
+
+            // 4. Per ogni colonna da trasformare
+            foreach (var colIndex in header)
+            {
+                var uniqueValues = sourceRows
+                    .Select(r => r[colIndex])
+                    .Where(v => !string.IsNullOrEmpty(v))
+                    .Distinct()
+                    .ToList();
+
+                // 5. Per ogni riga aggiungo le dummy
+                for (int rowIndex = 0; rowIndex < sourceRows.Count; rowIndex++)
+                {
+                    var cellValue = sourceRows[rowIndex][colIndex];
+
+                    foreach (var uv in uniqueValues)
+                    {
+                        mlRowsData[rowIndex].Add(cellValue == uv ? "1" : "0");
+                    }
+                }
+            }
+
+            // 6. Salvo le nuove righe ML
+            for (int rowIndex = 0; rowIndex < mlRowsData.Count; rowIndex++)
+            {
+                var mlRow = new MlCsvRow
+                {
+                    MlCsvId = mlcsv.Id,
+                    NumeroRiga = rowIndex,
+                    DataJson = JsonSerializer.Serialize(mlRowsData[rowIndex])
+                };
+
+                _context.MlCsvRows.Add(mlRow);
+            }
+
+            _context.SaveChanges();
+
+            return Ok(new
+            {
+                message = "done"
+            });
+        }
+        public IActionResult oooldDummyColumn(int id, List<int> headerId)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var table = _context.FileCsvs
+                .FirstOrDefault(k => k.Id == id && k.UserId == userId);
+
+            if (table == null)
+                return NotFound();
+
+            var header = JsonSerializer.Deserialize<List<string>>(table.HeaderJson);
+
+            if (header == null)
+                return BadRequest("Header non valido.");
+
+            // Recupero tutte le righe e le deserializzo una sola volta
+            var parsedRows = _context.CsvRows
+                .Where(r => r.FileId == table.Id)
+                .ToList()
+                .Select(r => new
+                {
+                    Entity = r,
+                    Values = JsonSerializer.Deserialize<List<string>>(r.DataJson) ?? new List<string>()
+                })
+                .ToList();
+
+            List<List<string>> uniqueValueListRow = new();
+
+            // Trova i valori unici delle colonne selezionate
+            foreach (var columnIndex in headerId)
+            {
+                HashSet<string> uniqueValues = new();
+
+                foreach (var row in parsedRows)
+                {
+                    if (columnIndex < row.Values.Count)
+                        uniqueValues.Add(row.Values[columnIndex]);
+                }
+
+                uniqueValueListRow.Add(uniqueValues.ToList());
+            }
+
+            // Costruzione del nuovo header
+            List<string> newHeader = new(header);
+
+            for (int h = headerId.Count - 1; h >= 0; h--)
+            {
+                int column = headerId[h];
+                string oldHeader = newHeader[column];
+
+                newHeader.RemoveAt(column);
+
+                foreach (var value in uniqueValueListRow[h])
+                {
+                    newHeader.Insert(column++, $"{oldHeader}_{value}");
+                }
+            }
+
+            table.HeaderJson = JsonSerializer.Serialize(newHeader);
+
+            // Aggiornamento delle righe
+            foreach (var row in parsedRows)
+            {
+                var values = row.Values;
+
+                for (int h = headerId.Count - 1; h >= 0; h--)
+                {
+                    int column = headerId[h];
+                    string currentValue = values[column];
+
+                    values.RemoveAt(column);
+
+                    foreach (var unique in uniqueValueListRow[h])
+                    {
+                        values.Insert(column++, currentValue == unique ? "1" : "0");
+                    }
+                }
+
+                row.Entity.DataJson = JsonSerializer.Serialize(values);
+            }
+
+            _context.SaveChanges();
+
+            return Ok(new
+            {
+                message = "Dummy encoding completato."
+            });
+        }

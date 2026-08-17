@@ -1,0 +1,33 @@
+﻿@model List<ModelDto>
+
+<div class="d-flex flex-wrap">
+    devo gestire la cancellazione dei modelli
+    devo cambiare il redirect del button quindi devo creare la view per la gestione del modello 
+    devo fare una function che mi porti alla pagina in questione una volta fatto genera modello
+    devo fare il js per la modifica della tabella
+    devo fare il controller per la comunicazione con l'api python
+    devo modificare il codice per renderlo più solido
+    devo modificare il codice rimuovendo parti inutili
+    
+    modifiche per rendere più carino il progetto
+    @foreach (var t in Model)
+    {
+        <div class="p-2" style="width:20%;">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">@t.Name</h5>
+                    <p class="card-text">Tabella ID: @t.Id</p>
+                    <a asp-controller="Home"
+                       asp-action="Models"
+                       asp-route-id="@t.Id"
+                       class="btn btn-primary">
+                        Open
+                    </a>
+                    <button id="DeleteModel" data-id=@t.Id class="DeleteModel btn btn-danger">
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+</div>

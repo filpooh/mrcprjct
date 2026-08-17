@@ -1,0 +1,49 @@
+﻿@model ModelDto
+
+<div class="card">
+    <div class="card-body">
+        <div class="mt-3">
+            <h1>Model Statistics</h1>
+        </div>
+
+        <div class="mt-3">
+            @if (Model.Statistic != null)
+            {
+                <ul class="list-group">
+                    @foreach (var kvp in Model.Statistic)
+                    {
+                        <li class="list-group-item">
+                            <strong>@kvp.Key:</strong> @kvp.Value
+                        </li>
+                    }
+                </ul>
+            }
+            else
+            {
+                <p>No statistics available for this model.</p>
+            }
+        </div>
+
+        <div class="mt-4">
+            <h3>Generated Images</h3>
+
+            @if (Model.ImgDict != null && Model.ImgDict.Any())
+            {
+                foreach (var img in Model.ImgDict)
+                {
+                    <div class="mb-3">
+                        <p><strong>@img.Key</strong></p>
+
+                        <img src="data:image/png;base64,@img.Value"
+                             class="img-fluid rounded border"
+                             alt="@img.Key" />
+                    </div>
+                }
+            }
+            else
+            {
+                <p>No images available for this model.</p>
+            }
+        </div>
+    </div>
+</div>

@@ -1,0 +1,27 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+@model List<FileCsv>
+
+<div class="d-flex flex-wrap">
+    @foreach (var t in Model)
+    {
+        <div class="p-2" style="width:20%;">
+            <div class="card h-100">
+                <div class="card-body"> 
+                    <h5 class="card-title">@t.FileName</h5>
+                    <p class="card-text">Tabella ID: @t.Id</p>
+                    <a asp-controller="Home"
+                       asp-action="Table"
+                       asp-route-id="@t.Id"
+                       class="btn btn-primary">
+                        Open
+                    </a>
+                    <button id="DeleteFile" data-id=@t.Id class="DeleteFile btn btn-danger" >
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+</div>
