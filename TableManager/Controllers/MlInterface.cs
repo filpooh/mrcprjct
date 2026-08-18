@@ -41,14 +41,14 @@ namespace TableManager.Controllers
             var headerJson = JsonConvert.DeserializeObject<List<int>>(headerId);
             DataFrame df = result[0] as DataFrame;
             if (type == 1 && headerJson.Count != 2)
-                return BadRequest("devi inserire almeno due colonne");
+                return BadRequest(new { message = "devi inserire almeno due colonne" });
             var name = result[1] as string;
             var res = await Sendrequest(df, type, mlCsv.Name, userId, headerJson, mlCsv.Id);
             mlCsv.Stato = await GetRequestStatus(mlCsv, userId);
             mlCsv.type = type;
             _context.SaveChanges();
             if (mlCsv.Stato == -1)
-                return BadRequest("Errore nell'invio della richiesta");
+                return BadRequest(new { message = "Errore nell'invio della richiesta" });
             //return RedirectToAction("Models", "Home",new {id = mlCsv.Id });
             return Json(new { redirectUrl = Url.Action("Models", "Home", new { id = mlCsv.Id }), stato = mlCsv.Stato });
 
@@ -157,14 +157,14 @@ namespace TableManager.Controllers
             var headerJson = JsonConvert.DeserializeObject<List<int>>(headerId);
             DataFrame df = result[0] as DataFrame;
             if (type == 1 && headerJson.Count != 2)
-                return BadRequest("devi inserire almeno due colonne");
+                return BadRequest(new { message = "devi inserire almeno due colonne" });
             var name = result[1] as string;
             var res = await Sendrequest(df, type, mlCsv.Name, userId, headerJson, mlCsv.Id);
             mlCsv.Stato = await GetRequestStatus(mlCsv, userId);
             mlCsv.type = type;
             _context.SaveChanges();
             if (mlCsv.Stato == -1)
-                return BadRequest("Errore nell'invio della richiesta");
+                return BadRequest(new {message = "Errore nell'invio della richiesta"});
             return Ok("ricarico la pagina");
         }
         [HttpPost]

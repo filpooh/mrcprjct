@@ -459,7 +459,7 @@ namespace TableManager.Classes
             }
             catch (Exception e)
             {
-                return null;
+                return new Dictionary<string, string>();
             }
         }
 
