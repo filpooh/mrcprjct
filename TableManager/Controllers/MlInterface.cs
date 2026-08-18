@@ -69,7 +69,8 @@ namespace TableManager.Controllers
             try
             {
 
-                var result = await _http.PostAsync("http://127.0.0.1:8000/CheckModelStatus", content);
+                //var result = await _http.PostAsync("http://127.0.0.1:8000/CheckModelStatus", content);
+                var result = await _http.PostAsync("https://mrcapi.onrender.com/CheckModelStatus", content);
                 var responseContent = await result.Content.ReadAsStringAsync();
                 var resposeDeserialized = JObject.Parse(responseContent);
 
@@ -210,7 +211,8 @@ namespace TableManager.Controllers
             try
             {
 
-                var response = await _http.PostAsync("http://127.0.0.1:8000/start-task", content);
+                //var response = await _http.PostAsync("http://127.0.0.1:8000/start-task", content);
+                var response = await _http.PostAsync("https://mrcapi.onrender.com/start-task", content);
                 var json = await response.Content.ReadAsStringAsync();
                 ViewBag.PythonResponse = json;
                 if ((int)response.StatusCode != 200)

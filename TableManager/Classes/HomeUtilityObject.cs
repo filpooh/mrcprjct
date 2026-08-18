@@ -429,8 +429,8 @@ namespace TableManager.Classes
 
 
                 using var client = new HttpClient();
-
-                var response = await client.PostAsync("http://localhost:8000/GetModelImgs", content);
+                // var response = await client.PostAsync("http://localhost:8000/GetModelImgs", content);
+                var response = await client.PostAsync("https://mrcapi.onrender.com/GetModelImgs", content);
 
                 if (!response.IsSuccessStatusCode)
                     return new Dictionary<string, string>();
