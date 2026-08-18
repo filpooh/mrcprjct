@@ -1,11 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace TableManager.Migrations
 {
     /// <inheritdoc />
-    public partial class newstart : Migration
+    public partial class InitialFull : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -166,8 +167,6 @@ namespace TableManager.Migrations
                     UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     FileName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     HeaderJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    MinJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    MaxJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     OriginalFile = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
@@ -178,7 +177,7 @@ namespace TableManager.Migrations
                         column: x => x.UserId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -203,114 +202,103 @@ namespace TableManager.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Settings",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    FileId = table.Column<int>(type: "int", nullable: false),
-                    Fill = table.Column<string>(type: "nvarchar(max)", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Settings", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Settings_FileCsvs_FileId",
-                        column: x => x.FileId,
-                        principalTable: "FileCsvs",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "TableProp",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    FileId = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_TableProp", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_TableProp_FileCsvs_FileId",
-                        column: x => x.FileId,
-                        principalTable: "FileCsvs",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "MlCsv",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     IdCsv = table.Column<int>(type: "int", nullable: false),
+                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Stato = table.Column<int>(type: "int", nullable: false),
-                    SettingId = table.Column<int>(type: "int", nullable: false)
+                    SettingId = table.Column<int>(type: "int", nullable: true),
+                    HeaderJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    type = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_MlCsv", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_MlCsv_Settings_SettingId",
-                        column: x => x.SettingId,
-                        principalTable: "Settings",
+                        name: "FK_MlCsv_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "MlCsvRows",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    MlCsvId = table.Column<int>(type: "int", nullable: false),
+                    NumeroRiga = table.Column<int>(type: "int", nullable: false),
+                    DataJson = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MlCsvRows", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_MlCsvRows_MlCsv_MlCsvId",
+                        column: x => x.MlCsvId,
+                        principalTable: "MlCsv",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
-                name: "TableRow",
+                name: "Settings",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    TablePropId = table.Column<int>(type: "int", nullable: false),
-                    SettingId = table.Column<int>(type: "int", nullable: true)
+                    MlId = table.Column<int>(type: "int", nullable: false),
+                    Fill = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    NormalizeColumn = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    DummyColumn = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    RegressionType = table.Column<int>(type: "int", nullable: false),
+                    StatoVerbose = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_TableRow", x => x.Id);
+                    table.PrimaryKey("PK_Settings", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_TableRow_Settings_SettingId",
-                        column: x => x.SettingId,
-                        principalTable: "Settings",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_TableRow_TableProp_TablePropId",
-                        column: x => x.TablePropId,
-                        principalTable: "TableProp",
+                        name: "FK_Settings_MlCsv_MlId",
+                        column: x => x.MlId,
+                        principalTable: "MlCsv",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
-                name: "Cell",
+                name: "Statistics",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    TableRowId = table.Column<int>(type: "int", nullable: false),
-                    ColumnIndex = table.Column<int>(type: "int", nullable: false),
-                    Value = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    SettingId = table.Column<int>(type: "int", nullable: true)
+                    MlCsvId = table.Column<int>(type: "int", nullable: false),
+                    RegressionId = table.Column<int>(type: "int", nullable: false),
+                    ModelPath = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ModelType = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    GraphPath = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    R2 = table.Column<float>(type: "real", nullable: false),
+                    Mse = table.Column<float>(type: "real", nullable: false),
+                    Rmse = table.Column<float>(type: "real", nullable: false),
+                    Coef = table.Column<float>(type: "real", nullable: false),
+                    Intercept = table.Column<float>(type: "real", nullable: false),
+                    StartTime = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    EndTime = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    DurationSeconds = table.Column<float>(type: "real", nullable: false),
+                    OtherValues = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Cell", x => x.Id);
+                    table.PrimaryKey("PK_Statistics", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Cell_Settings_SettingId",
-                        column: x => x.SettingId,
-                        principalTable: "Settings",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_Cell_TableRow_TableRowId",
-                        column: x => x.TableRowId,
-                        principalTable: "TableRow",
+                        name: "FK_Statistics_MlCsv_MlCsvId",
+                        column: x => x.MlCsvId,
+                        principalTable: "MlCsv",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -355,16 +343,6 @@ namespace TableManager.Migrations
                 filter: "[NormalizedUserName] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Cell_SettingId",
-                table: "Cell",
-                column: "SettingId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Cell_TableRowId",
-                table: "Cell",
-                column: "TableRowId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_CsvRows_FileId",
                 table: "CsvRows",
                 column: "FileId");
@@ -380,29 +358,46 @@ namespace TableManager.Migrations
                 column: "SettingId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Settings_FileId",
+                name: "IX_MlCsv_UserId",
+                table: "MlCsv",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MlCsvRows_MlCsvId",
+                table: "MlCsvRows",
+                column: "MlCsvId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Settings_MlId",
                 table: "Settings",
-                column: "FileId");
+                column: "MlId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TableProp_FileId",
-                table: "TableProp",
-                column: "FileId");
+                name: "IX_Statistics_MlCsvId",
+                table: "Statistics",
+                column: "MlCsvId",
+                unique: true);
 
-            migrationBuilder.CreateIndex(
-                name: "IX_TableRow_SettingId",
-                table: "TableRow",
-                column: "SettingId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_TableRow_TablePropId",
-                table: "TableRow",
-                column: "TablePropId");
+            migrationBuilder.AddForeignKey(
+                name: "FK_MlCsv_Settings_SettingId",
+                table: "MlCsv",
+                column: "SettingId",
+                principalTable: "Settings",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Restrict);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropForeignKey(
+                name: "FK_MlCsv_AspNetUsers_UserId",
+                table: "MlCsv");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_MlCsv_Settings_SettingId",
+                table: "MlCsv");
+
             migrationBuilder.DropTable(
                 name: "AspNetRoleClaims");
 
@@ -419,31 +414,28 @@ namespace TableManager.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
-                name: "Cell");
-
-            migrationBuilder.DropTable(
                 name: "CsvRows");
 
             migrationBuilder.DropTable(
-                name: "MlCsv");
+                name: "MlCsvRows");
+
+            migrationBuilder.DropTable(
+                name: "Statistics");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");
-
-            migrationBuilder.DropTable(
-                name: "TableRow");
-
-            migrationBuilder.DropTable(
-                name: "Settings");
-
-            migrationBuilder.DropTable(
-                name: "TableProp");
 
             migrationBuilder.DropTable(
                 name: "FileCsvs");
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");
+
+            migrationBuilder.DropTable(
+                name: "Settings");
+
+            migrationBuilder.DropTable(
+                name: "MlCsv");
         }
     }
 }

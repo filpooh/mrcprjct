@@ -12,8 +12,8 @@ using TableManager.Data;
 namespace TableManager.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260808154933_changesettingmodel2")]
-    partial class changesettingmodel2
+    [Migration("20260818095530_InitialFull")]
+    partial class InitialFull
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -319,6 +319,9 @@ namespace TableManager.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<int>("type")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("SettingId");
@@ -377,11 +380,77 @@ namespace TableManager.Migrations
                     b.Property<int>("RegressionType")
                         .HasColumnType("int");
 
+                    b.Property<string>("StatoVerbose")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("MlId");
 
                     b.ToTable("Settings");
+                });
+
+            modelBuilder.Entity("TableManager.Models.Statistics", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<float>("Coef")
+                        .HasColumnType("real");
+
+                    b.Property<float>("DurationSeconds")
+                        .HasColumnType("real");
+
+                    b.Property<DateTime>("EndTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("GraphPath")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<float>("Intercept")
+                        .HasColumnType("real");
+
+                    b.Property<int>("MlCsvId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ModelPath")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ModelType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<float>("Mse")
+                        .HasColumnType("real");
+
+                    b.PrimitiveCollection<string>("OtherValues")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<float>("R2")
+                        .HasColumnType("real");
+
+                    b.Property<int>("RegressionId")
+                        .HasColumnType("int");
+
+                    b.Property<float>("Rmse")
+                        .HasColumnType("real");
+
+                    b.Property<DateTime>("StartTime")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MlCsvId")
+                        .IsUnique();
+
+                    b.ToTable("Statistics");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -497,6 +566,17 @@ namespace TableManager.Migrations
                     b.Navigation("MlCsv");
                 });
 
+            modelBuilder.Entity("TableManager.Models.Statistics", b =>
+                {
+                    b.HasOne("TableManager.Models.MlCsv", "MlCsv")
+                        .WithOne("Statistics")
+                        .HasForeignKey("TableManager.Models.Statistics", "MlCsvId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MlCsv");
+                });
+
             modelBuilder.Entity("TableManager.Models.FileCsv", b =>
                 {
                     b.Navigation("Rows");
@@ -505,6 +585,9 @@ namespace TableManager.Migrations
             modelBuilder.Entity("TableManager.Models.MlCsv", b =>
                 {
                     b.Navigation("Rows");
+
+                    b.Navigation("Statistics")
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

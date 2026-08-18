@@ -1,0 +1,218 @@
+﻿IF OBJECT_ID(N'[__EFMigrationsHistory]') IS NULL
+BEGIN
+    CREATE TABLE [__EFMigrationsHistory] (
+        [MigrationId] nvarchar(150) NOT NULL,
+        [ProductVersion] nvarchar(32) NOT NULL,
+        CONSTRAINT [PK___EFMigrationsHistory] PRIMARY KEY ([MigrationId])
+    );
+END;
+GO
+
+CREATE TABLE [AspNetRoles] (
+    [Id] nvarchar(450) NOT NULL,
+    [Name] nvarchar(256) NULL,
+    [NormalizedName] nvarchar(256) NULL,
+    [ConcurrencyStamp] nvarchar(max) NULL,
+    CONSTRAINT [PK_AspNetRoles] PRIMARY KEY ([Id])
+);
+GO
+
+CREATE TABLE [AspNetUsers] (
+    [Id] nvarchar(450) NOT NULL,
+    [Nome] nvarchar(max) NOT NULL,
+    [Cognome] nvarchar(max) NOT NULL,
+    [UserName] nvarchar(256) NULL,
+    [NormalizedUserName] nvarchar(256) NULL,
+    [Email] nvarchar(256) NULL,
+    [NormalizedEmail] nvarchar(256) NULL,
+    [EmailConfirmed] bit NOT NULL,
+    [PasswordHash] nvarchar(max) NULL,
+    [SecurityStamp] nvarchar(max) NULL,
+    [ConcurrencyStamp] nvarchar(max) NULL,
+    [PhoneNumber] nvarchar(max) NULL,
+    [PhoneNumberConfirmed] bit NOT NULL,
+    [TwoFactorEnabled] bit NOT NULL,
+    [LockoutEnd] datetimeoffset NULL,
+    [LockoutEnabled] bit NOT NULL,
+    [AccessFailedCount] int NOT NULL,
+    CONSTRAINT [PK_AspNetUsers] PRIMARY KEY ([Id])
+);
+GO
+
+CREATE TABLE [AspNetRoleClaims] (
+    [Id] int NOT NULL IDENTITY,
+    [RoleId] nvarchar(450) NOT NULL,
+    [ClaimType] nvarchar(max) NULL,
+    [ClaimValue] nvarchar(max) NULL,
+    CONSTRAINT [PK_AspNetRoleClaims] PRIMARY KEY ([Id]),
+    CONSTRAINT [FK_AspNetRoleClaims_AspNetRoles_RoleId] FOREIGN KEY ([RoleId]) REFERENCES [AspNetRoles] ([Id]) ON DELETE CASCADE
+);
+GO
+
+CREATE TABLE [AspNetUserClaims] (
+    [Id] int NOT NULL IDENTITY,
+    [UserId] nvarchar(450) NOT NULL,
+    [ClaimType] nvarchar(max) NULL,
+    [ClaimValue] nvarchar(max) NULL,
+    CONSTRAINT [PK_AspNetUserClaims] PRIMARY KEY ([Id]),
+    CONSTRAINT [FK_AspNetUserClaims_AspNetUsers_UserId] FOREIGN KEY ([UserId]) REFERENCES [AspNetUsers] ([Id]) ON DELETE CASCADE
+);
+GO
+
+CREATE TABLE [AspNetUserLogins] (
+    [LoginProvider] nvarchar(128) NOT NULL,
+    [ProviderKey] nvarchar(128) NOT NULL,
+    [ProviderDisplayName] nvarchar(max) NULL,
+    [UserId] nvarchar(450) NOT NULL,
+    CONSTRAINT [PK_AspNetUserLogins] PRIMARY KEY ([LoginProvider], [ProviderKey]),
+    CONSTRAINT [FK_AspNetUserLogins_AspNetUsers_UserId] FOREIGN KEY ([UserId]) REFERENCES [AspNetUsers] ([Id]) ON DELETE CASCADE
+);
+GO
+
+CREATE TABLE [AspNetUserRoles] (
+    [UserId] nvarchar(450) NOT NULL,
+    [RoleId] nvarchar(450) NOT NULL,
+    CONSTRAINT [PK_AspNetUserRoles] PRIMARY KEY ([UserId], [RoleId]),
+    CONSTRAINT [FK_AspNetUserRoles_AspNetRoles_RoleId] FOREIGN KEY ([RoleId]) REFERENCES [AspNetRoles] ([Id]) ON DELETE CASCADE,
+    CONSTRAINT [FK_AspNetUserRoles_AspNetUsers_UserId] FOREIGN KEY ([UserId]) REFERENCES [AspNetUsers] ([Id]) ON DELETE CASCADE
+);
+GO
+
+CREATE TABLE [AspNetUserTokens] (
+    [UserId] nvarchar(450) NOT NULL,
+    [LoginProvider] nvarchar(128) NOT NULL,
+    [Name] nvarchar(128) NOT NULL,
+    [Value] nvarchar(max) NULL,
+    CONSTRAINT [PK_AspNetUserTokens] PRIMARY KEY ([UserId], [LoginProvider], [Name]),
+    CONSTRAINT [FK_AspNetUserTokens_AspNetUsers_UserId] FOREIGN KEY ([UserId]) REFERENCES [AspNetUsers] ([Id]) ON DELETE CASCADE
+);
+GO
+
+CREATE TABLE [FileCsvs] (
+    [Id] int NOT NULL IDENTITY,
+    [UserId] nvarchar(450) NOT NULL,
+    [FileName] nvarchar(max) NOT NULL,
+    [HeaderJson] nvarchar(max) NOT NULL,
+    [OriginalFile] bit NOT NULL,
+    CONSTRAINT [PK_FileCsvs] PRIMARY KEY ([Id]),
+    CONSTRAINT [FK_FileCsvs_AspNetUsers_UserId] FOREIGN KEY ([UserId]) REFERENCES [AspNetUsers] ([Id]) ON DELETE NO ACTION
+);
+GO
+
+CREATE TABLE [CsvRows] (
+    [Id] bigint NOT NULL IDENTITY,
+    [FileId] int NOT NULL,
+    [NumeroRiga] int NOT NULL,
+    [DataJson] nvarchar(max) NOT NULL,
+    CONSTRAINT [PK_CsvRows] PRIMARY KEY ([Id]),
+    CONSTRAINT [FK_CsvRows_FileCsvs_FileId] FOREIGN KEY ([FileId]) REFERENCES [FileCsvs] ([Id]) ON DELETE CASCADE
+);
+GO
+
+CREATE TABLE [MlCsv] (
+    [Id] int NOT NULL IDENTITY,
+    [IdCsv] int NOT NULL,
+    [UserId] nvarchar(450) NOT NULL,
+    [Name] nvarchar(max) NOT NULL,
+    [Stato] int NOT NULL,
+    [SettingId] int NULL,
+    [HeaderJson] nvarchar(max) NOT NULL,
+    [type] int NOT NULL,
+    CONSTRAINT [PK_MlCsv] PRIMARY KEY ([Id]),
+    CONSTRAINT [FK_MlCsv_AspNetUsers_UserId] FOREIGN KEY ([UserId]) REFERENCES [AspNetUsers] ([Id]) ON DELETE NO ACTION
+);
+GO
+
+CREATE TABLE [MlCsvRows] (
+    [Id] bigint NOT NULL IDENTITY,
+    [MlCsvId] int NOT NULL,
+    [NumeroRiga] int NOT NULL,
+    [DataJson] nvarchar(max) NOT NULL,
+    CONSTRAINT [PK_MlCsvRows] PRIMARY KEY ([Id]),
+    CONSTRAINT [FK_MlCsvRows_MlCsv_MlCsvId] FOREIGN KEY ([MlCsvId]) REFERENCES [MlCsv] ([Id]) ON DELETE CASCADE
+);
+GO
+
+CREATE TABLE [Settings] (
+    [Id] int NOT NULL IDENTITY,
+    [MlId] int NOT NULL,
+    [Fill] nvarchar(max) NOT NULL,
+    [NormalizeColumn] nvarchar(max) NULL,
+    [DummyColumn] nvarchar(max) NULL,
+    [RegressionType] int NOT NULL,
+    [StatoVerbose] nvarchar(max) NOT NULL,
+    CONSTRAINT [PK_Settings] PRIMARY KEY ([Id]),
+    CONSTRAINT [FK_Settings_MlCsv_MlId] FOREIGN KEY ([MlId]) REFERENCES [MlCsv] ([Id]) ON DELETE CASCADE
+);
+GO
+
+CREATE TABLE [Statistics] (
+    [Id] int NOT NULL IDENTITY,
+    [MlCsvId] int NOT NULL,
+    [RegressionId] int NOT NULL,
+    [ModelPath] nvarchar(max) NOT NULL,
+    [ModelType] nvarchar(max) NOT NULL,
+    [GraphPath] nvarchar(max) NOT NULL,
+    [R2] real NOT NULL,
+    [Mse] real NOT NULL,
+    [Rmse] real NOT NULL,
+    [Coef] real NOT NULL,
+    [Intercept] real NOT NULL,
+    [StartTime] datetime2 NOT NULL,
+    [EndTime] datetime2 NOT NULL,
+    [DurationSeconds] real NOT NULL,
+    [OtherValues] nvarchar(max) NOT NULL,
+    CONSTRAINT [PK_Statistics] PRIMARY KEY ([Id]),
+    CONSTRAINT [FK_Statistics_MlCsv_MlCsvId] FOREIGN KEY ([MlCsvId]) REFERENCES [MlCsv] ([Id]) ON DELETE CASCADE
+);
+GO
+
+CREATE INDEX [IX_AspNetRoleClaims_RoleId] ON [AspNetRoleClaims] ([RoleId]);
+GO
+
+CREATE UNIQUE INDEX [RoleNameIndex] ON [AspNetRoles] ([NormalizedName]) WHERE [NormalizedName] IS NOT NULL;
+GO
+
+CREATE INDEX [IX_AspNetUserClaims_UserId] ON [AspNetUserClaims] ([UserId]);
+GO
+
+CREATE INDEX [IX_AspNetUserLogins_UserId] ON [AspNetUserLogins] ([UserId]);
+GO
+
+CREATE INDEX [IX_AspNetUserRoles_RoleId] ON [AspNetUserRoles] ([RoleId]);
+GO
+
+CREATE INDEX [EmailIndex] ON [AspNetUsers] ([NormalizedEmail]);
+GO
+
+CREATE UNIQUE INDEX [UserNameIndex] ON [AspNetUsers] ([NormalizedUserName]) WHERE [NormalizedUserName] IS NOT NULL;
+GO
+
+CREATE INDEX [IX_CsvRows_FileId] ON [CsvRows] ([FileId]);
+GO
+
+CREATE INDEX [IX_FileCsvs_UserId] ON [FileCsvs] ([UserId]);
+GO
+
+CREATE INDEX [IX_MlCsv_SettingId] ON [MlCsv] ([SettingId]);
+GO
+
+CREATE INDEX [IX_MlCsv_UserId] ON [MlCsv] ([UserId]);
+GO
+
+CREATE INDEX [IX_MlCsvRows_MlCsvId] ON [MlCsvRows] ([MlCsvId]);
+GO
+
+CREATE INDEX [IX_Settings_MlId] ON [Settings] ([MlId]);
+GO
+
+CREATE UNIQUE INDEX [IX_Statistics_MlCsvId] ON [Statistics] ([MlCsvId]);
+GO
+
+ALTER TABLE [MlCsv] ADD CONSTRAINT [FK_MlCsv_Settings_SettingId] FOREIGN KEY ([SettingId]) REFERENCES [Settings] ([Id]) ON DELETE NO ACTION;
+GO
+
+INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+VALUES (N'20260818095530_InitialFull', N'10.0.9');
+GO
+
