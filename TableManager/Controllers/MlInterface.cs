@@ -47,6 +47,8 @@ namespace TableManager.Controllers
             mlCsv.Stato = await GetRequestStatus(mlCsv, userId);
             mlCsv.type = type;
             _context.SaveChanges();
+            if (mlCsv.Stato == -1)
+                return BadRequest("Errore nell'invio della richiesta");
             //return RedirectToAction("Models", "Home",new {id = mlCsv.Id });
             return Json(new { redirectUrl = Url.Action("Models", "Home", new { id = mlCsv.Id }), stato = mlCsv.Stato });
 

@@ -46,7 +46,7 @@
             //formData.append("name", name);
             formData.append("tableId", tableId);
             $.ajax({
-                url: "/MlInterface/RequestByCreate",
+                url: "/MlInterface/RequestByModel",
                 type: "POST",
                 data: formData,
                 processData: false,   // obbligatorio per FormData
