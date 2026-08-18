@@ -149,7 +149,7 @@ namespace TableManager.Controllers
         public async Task<IActionResult> RequestByModel(int modelId, int type, string headerId)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var mlCsv = _context.MlCsv.Where(x => x.Id == modelId && userId == x.UserId && (x.Stato == 0 || x.Stato == -1 || x.Stato == 1)).FirstOrDefault();
+            var mlCsv = _context.MlCsv.Where(x => x.Id == modelId && userId == x.UserId).FirstOrDefault();
 
             //return Json(new { redirectUrl = Url.Action("Models", "Home", new { id = mlCsv.Id }) });
             // mlCsv = _context.MlCsv.Where(x => x.IdCsv == tableId && userId == x.UserId).FirstOrDefault();

@@ -44,7 +44,7 @@
             formData.append("headerId", JSON.stringify(headerId));
 
             //formData.append("name", name);
-            formData.append("tableId", tableId);
+            formData.append("modelId", tableId);
             $.ajax({
                 url: "/MlInterface/RequestByModel",
                 type: "POST",
@@ -65,7 +65,7 @@
                             break;
                     }
 
-                    window.location.href = data.redirectUrl;
+                    //window.location.href = data.redirectUrl;
                 },
                 error: function (err) {
                     console.error(err);

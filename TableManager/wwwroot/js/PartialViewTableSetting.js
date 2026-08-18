@@ -70,6 +70,7 @@
                 },
                 error: function (err) {
                     console.error(err);
+                    console.log(err.message)
                 }
             });
         });
