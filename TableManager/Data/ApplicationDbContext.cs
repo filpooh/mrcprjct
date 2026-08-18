@@ -32,7 +32,7 @@ namespace TableManager.Data
         {
             base.OnModelCreating(builder);
 
-            // FK verso ApplicationUser → NO CASCADE
+            // FK verso ApplicationUser  NO CASCADE
             builder.Entity<FileCsv>()
                 .HasOne(f => f.User)
                 .WithMany()
@@ -50,14 +50,14 @@ namespace TableManager.Data
                 .HasForeignKey(m => m.SettingId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Cascade interno FileCsv → CsvRows
+            // Cascade interno FileCsv  CsvRows
             builder.Entity<CsvRow>()
                 .HasOne(r => r.File)
                 .WithMany(f => f.Rows)
                 .HasForeignKey(r => r.FileId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Cascade interno MlCsv → MlCsvRows
+            // Cascade interno MlCsv  MlCsvRows
             builder.Entity<MlCsvRow>()
                 .HasOne(r => r.MlCsv)
                 .WithMany(m => m.Rows)

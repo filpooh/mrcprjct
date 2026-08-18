@@ -41,7 +41,7 @@
                     return;
             }
 
-            // Converti NodeList → array di ID
+            // Converti NodeList  array di ID
             const headerId = Array.from(header).map(h => h.id);
             formData.append("headerId", JSON.stringify(headerId));
             
@@ -55,7 +55,18 @@
                 contentType: false,   // obbligatorio per FormData
                 success: function (data) {
                     console.log("Risposta:", data);
-                    alert("Modello generato!");
+                    switch (data.stato) {
+                        case "2":
+                            alert("Modello generato!");
+                            break;
+                        case "1":
+                            alert("Modello in preparazione")
+                            break;
+                        case "-1":
+                            alert("Errore creazione modello!");
+                            break;
+                    }
+                    window.location.href = data.redirectUrl;
                 },
                 error: function (err) {
                     console.error(err);

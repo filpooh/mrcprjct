@@ -23,14 +23,54 @@
         });
 
         document.getElementById("generateModel").addEventListener("click", function () {
-            const type = document.getElementsByName("selectModel")[0].value;
-            fetch(`/MlInterface/Index?name=@Model.Name&tableId=@Model.Id&type=${type}`)
-                .then(r => r.json())
-                .then(data => {
+            const type = document.getElementById("selectModel").value;
+            //const name = "@Model.Name";
+            const tableId = document.getElementById("pageData").dataset.id;
+            const formData = new FormData();
+            formData.append("type", type);
+            let header;
+            switch (type) {
+                case "1":   // attenzione: value è stringa
+                    const div = document.getElementById("headers-container-regression");
+                    header = div.querySelectorAll("input.form-check-input:checked");
+                    break;
+                default:
+                    alert("Seleziona un tipo di regressione");
+                    return;
+            }
+
+            // Converti NodeList  array di ID
+            const headerId = Array.from(header).map(h => h.id);
+            formData.append("headerId", JSON.stringify(headerId));
+
+            //formData.append("name", name);
+            formData.append("tableId", tableId);
+            $.ajax({
+                url: "/MlInterface/RequestByCreate",
+                type: "POST",
+                data: formData,
+                processData: false,   // obbligatorio per FormData
+                contentType: false,   // obbligatorio per FormData
+                success: function (data) {
                     console.log("Risposta:", data);
-                    alert("Modello generato!");
-                })
-                .catch(err => console.error(err));
+                    switch(data.stato){
+                        case "2":
+                            alert("Modello generato!");
+                            break;
+                        case "1":
+                            alert("Modello in preparazione")
+                            break;
+                        case "-1":
+                            alert("Errore creazione modello!");
+                            break;
+                    }
+
+                    window.location.href = data.redirectUrl;
+                },
+                error: function (err) {
+                    console.error(err);
+                }
+            });
         });
         /*document.getElementById("submitSetting").addEventListener("click", function () {
             const regressionType = document.getElementById().value;

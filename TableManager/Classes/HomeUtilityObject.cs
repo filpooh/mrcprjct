@@ -68,7 +68,7 @@ namespace TableManager.Classes
         {
             if (!table.HeaderJson.Contains("Id") && !table.HeaderJson.Contains("id"))
             {
-                // Se la prima colonna è una progressione numerica → sostituisco "" con "Id"
+                // Se la prima colonna è una progressione numerica  sostituisco "" con "Id"
                 var firstColumn = table.Values.Select(r => r[0]).ToList();
 
                 bool isNumericProgression =
@@ -106,9 +106,11 @@ namespace TableManager.Classes
         public List<object> GetDataFrame(int id, bool original, string userId)
         {
             //non include la prop di navigazione
-            object mlCsv;
+            object mlCsv = null;
             if (!original)
                 mlCsv = _context.MlCsv.Include(x => x.Rows).FirstOrDefault(x => x.IdCsv == id && x.UserId == userId && x.Stato == 0);
+                if(mlCsv == null)
+                    mlCsv = _context.MlCsv.Include(x => x.Rows).FirstOrDefault(x => x.Id == id && x.UserId == userId && x.Stato == 0);
             else
                 mlCsv = _context.FileCsvs.Include(x => x.Rows).FirstOrDefault(x => x.Id == id);
             List<string> header = new List<string>();
@@ -174,7 +176,7 @@ namespace TableManager.Classes
             {
                 var original = df.Columns[columnId];
 
-                // 1. Trova tutte le categorie uniche
+                //Trova tutte le categorie uniche
                 var categories = new HashSet<string>();
 
                 foreach (var cell in original)
@@ -184,7 +186,7 @@ namespace TableManager.Classes
                         categories.Add(value);
                 }
 
-                // 2. Crea una colonna dummy per ogni categoria
+                //Crea una colonna dummy per ogni categoria
                 var dummyColumns = new Dictionary<string, Int32DataFrameColumn>();
 
                 foreach (var cat in categories)
@@ -192,7 +194,7 @@ namespace TableManager.Classes
                     dummyColumns[cat] = new Int32DataFrameColumn($"{original.Name}_{cat}");
                 }
 
-                // 3. Popola le colonne dummy
+                // Popola le colonne dummy
                 foreach (var cell in original)
                 {
                     var value = cell?.ToString();
@@ -203,7 +205,7 @@ namespace TableManager.Classes
                     }
                 }
 
-                // 4. Aggiungi le colonne al DataFrame
+                // colonne al DataFrame
                 foreach (var col in dummyColumns.Values)
                 {
                     if (!df.Columns.Contains(col))//entra a quanto pare
@@ -247,9 +249,7 @@ namespace TableManager.Classes
                 })
                 .ToList();
 
-            // ---------------------------------------------------------
-            // CASO 1: NON ESISTE MLCSV → CREO TUTTO DA ZERO
-            // ---------------------------------------------------------
+            // non esiste mlcsv parto da 0     
             if (mlCsv == null)
             {
                 // 1. Creo MlCsv
@@ -265,7 +265,7 @@ namespace TableManager.Classes
                 _context.MlCsv.Add(mlCsv);
                 _context.SaveChanges(); // mlCsv.Id ora esiste
 
-                // 2. Creo Setting collegato
+                //Creo Setting collegato
                 setting = new Setting
                 {
                     MlId = mlCsv.Id,
@@ -286,11 +286,11 @@ namespace TableManager.Classes
                 _context.Settings.Add(setting);
                 _context.SaveChanges();
 
-                // 3. Aggancio Setting a MlCsv
+                // Aggancio Setting a MlCsv
                 mlCsv.SettingId = setting.Id;
                 _context.SaveChanges();
 
-                // 4. Inserisco tutte le righe
+                //Inserisco tutte le righe
                 foreach (var r in newRows)
                 {
                     r.MlCsvId = mlCsv.Id;
@@ -301,11 +301,8 @@ namespace TableManager.Classes
                 return;
             }
 
-            // ---------------------------------------------------------
-            // CASO 2: MLCSV ESISTE → AGGIORNO
-            // ---------------------------------------------------------
-
-            // Aggiorno header
+            // mlcsv esiste aggiorno
+           // Aggiorno header
             mlCsv.HeaderJson = headerJson;
 
             // Aggiorno o creo righe
@@ -346,7 +343,7 @@ namespace TableManager.Classes
             mlCsv.Name = "ML_" + tableId + "_" + mlCsv.Id;
             _context.MlCsv.Add(mlCsv);
             _context.SaveChanges();
-            // 2. Creo Setting collegato
+            //Creo Setting collegato
             var setting = new Setting
             {
                 MlId = mlCsv.Id,
@@ -522,7 +519,7 @@ namespace TableManager.Classes
         {
             foreach (var column in df.Columns)
             {
-                // Gestiamo solo colonne numeriche
+                //  solo colonne numeriche
                 if (column.DataType == typeof(double) ||
                     column.DataType == typeof(float) ||
                     column.DataType == typeof(int) ||
@@ -544,11 +541,11 @@ namespace TableManager.Classes
                     }
 
                     if (count == 0)
-                        continue; // tutta la colonna è vuota → non facciamo nulla
+                        continue; // tutta la colonna è vuota  nessua op
 
                     double mean = sum / count;
 
-                    // Riempiamo i null con la media
+                    // Riempi i null con la media
                     for (int i = 0; i < column.Length; i++)
                     {
                         if (column[i] == null)
@@ -564,7 +561,7 @@ namespace TableManager.Classes
         {
             foreach (var column in df.Columns)
             {
-                // Consideriamo solo colonne numeriche
+                // Consideri solo colonne numeriche
                 if (column.DataType == typeof(double) ||
                     column.DataType == typeof(float) ||
                     column.DataType == typeof(int) ||
@@ -572,7 +569,7 @@ namespace TableManager.Classes
                 {
                     List<double> values = new();
 
-                    // Raccogliamo i valori non nulli
+                    // Raccogli i valori non nulli
                     for (int i = 0; i < column.Length; i++)
                     {
                         var value = column[i];
@@ -583,9 +580,9 @@ namespace TableManager.Classes
                     }
 
                     if (values.Count == 0)
-                        continue; // colonna completamente vuota → non facciamo nulla
+                        continue; // colonna completamente vuota  nessuna op
 
-                    // Ordiniamo per calcolare la mediana
+                    // Ordini per calcolare la mediana
                     values.Sort();
 
                     double median;
@@ -593,12 +590,12 @@ namespace TableManager.Classes
 
                     if (n % 2 == 1)
                     {
-                        // dispari → valore centrale
+                        // dispari  valore centrale
                         median = values[n / 2];
                     }
                     else
                     {
-                        // pari → media dei due centrali
+                        // pari  media dei due centrali
                         median = (values[(n / 2) - 1] + values[n / 2]) / 2.0;
                     }
 
@@ -620,7 +617,7 @@ namespace TableManager.Classes
 
             foreach (var column in df.Columns)
             {
-                // Se value è numerico → riempi solo colonne numeriche
+                // Se value è numerico  riempi solo colonne numeriche
                 if (isNumeric)
                 {
 
@@ -635,7 +632,7 @@ namespace TableManager.Classes
                 }
                 else
                 {
-                    // Se value NON è numerico → riempi solo colonne NON numeriche
+                    // Se value NON è numerico  riempi solo colonne NON numeriche
                     if (column.DataType == typeof(string))
                     {
                         for (int i = 0; i < column.Length; i++)

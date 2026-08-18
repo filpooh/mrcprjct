@@ -76,12 +76,6 @@ namespace TableManager.Controllers
                 return BadRequest("tabella non trovata");
             return View(table);
         }
-        /*public IActionResult Models(int id) {
-            var model = _utilityObject.GetModel(id, User.FindFirstValue(ClaimTypes.NameIdentifier));
-            if (model == null)
-                return BadRequest("modello non trovato");
-            return View(model);
-        }*/
         public async Task<IActionResult> Models(int id)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -91,23 +85,7 @@ namespace TableManager.Controllers
 
             return View(model); // la view usa il modello completo
         }
-        [HttpPost]
-        /* public IActionResult LoadModelData([FromBody] ModelDto model)
-         {
-             return PartialView("_ModelDataPartial", model);
-         }
 
-         [HttpPost]
-         public IActionResult LoadModelSettings([FromBody] ModelDto model)
-         {
-             return PartialView("_ModelSettingsPartial", model);
-         }
-
-         [HttpPost]
-         public IActionResult LoadModelStat([FromBody] ModelDto model)
-         {
-             return PartialView("_partialStatModel", model);
-         }*/
         [HttpPost]
         public IActionResult UploadCsv(IFormFile file)
         {
@@ -298,82 +276,5 @@ namespace TableManager.Controllers
             _context.SaveChanges();
             return Ok(new { redirect = "/Home/Index" });
         }
-
-        private double StdDev(DoubleDataFrameColumn col)
-        {
-            double mean = col.Mean();
-            double sumSq = 0;
-            long count = 0;
-
-            foreach (var v in col)
-            {
-                if (!v.HasValue) continue;
-
-                double val = v.Value;
-                sumSq += Math.Pow(val - mean, 2);
-                count++;
-            }
-
-            return Math.Sqrt(sumSq / count);
-        }
-        //metodo usato per la normalizzazione
-        private DataFrame ZScore(DataFrame df, List<int> headerIds)
-        {
-            foreach (int columnId in headerIds)
-            {
-                // Recupero colonna numerica tramite ID
-                var col = df.Columns[columnId] as DoubleDataFrameColumn;
-
-                if (col == null)
-                    continue; // ignora colonne non numeriche
-
-                double mean = col.Mean();
-                double std = StdDev(col);
-
-                var normalized = new DoubleDataFrameColumn(col.Name + "_ZScore");
-
-                foreach (var v in col)
-                {
-                    double val = v.HasValue ? v.Value : double.NaN;
-                    double norm = (val - mean) / std;
-                    normalized.Append(norm);
-                }
-
-                df.Columns.Add(normalized);
-            }
-            return df;
-        }
-        //funzione per chiamare lo script python
-        private void CallPython(int id)
-        {
-            var pythonExe = @"C:\Users\marce\AppData\Local\Microsoft\WindowsApps\py.exe"; // Modifica con il percorso corretto di python.exe
-            var scriptPath = @"D:\Python\main.py";
-            var psi = new ProcessStartInfo
-            {
-                FileName = pythonExe,
-                Arguments = $"\"{scriptPath}\"",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-            if (!System.IO.File.Exists(pythonExe))
-            {
-                // return BadRequest(new { message = $"Python non trovato: {pythonExe}" });
-            }
-            using var process = Process.Start(psi);
-
-            string output = process.StandardOutput.ReadToEnd();
-            string error = process.StandardError.ReadToEnd();
-
-            process.WaitForExit();
-
-            if (process.ExitCode != 0)
-            {
-                //return BadRequest(error);
-            }
-        }
-
     }
 }
-//ho creato una normalizzazione e un dummy di prova vanno testate/cambiate 

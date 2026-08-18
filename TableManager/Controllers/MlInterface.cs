@@ -35,6 +35,7 @@ namespace TableManager.Controllers
             var mlCsv = _context.MlCsv.Where(x => x.IdCsv == tableId && userId == x.UserId && (x.Stato == 0 || x.Stato == -1 || x.Stato == 1)).FirstOrDefault();
             if (mlCsv == null)
                 mlCsv = _utilityObject.CreateNewMlCsv(tableId, userId, type);
+            //return Json(new { redirectUrl = Url.Action("Models", "Home", new { id = mlCsv.Id }) });
             // mlCsv = _context.MlCsv.Where(x => x.IdCsv == tableId && userId == x.UserId).FirstOrDefault();
             var result = _utilityObject.GetDataFrame(tableId, false, userId);
             var headerJson = JsonConvert.DeserializeObject<List<int>>(headerId);
@@ -46,9 +47,9 @@ namespace TableManager.Controllers
             mlCsv.Stato = await GetRequestStatus(mlCsv, userId);
             mlCsv.type = type;
             _context.SaveChanges();
-            if (mlCsv.Stato == -1)
-                return BadRequest("Errore nell'invio della richiesta");
-            return Ok("ricarico la pagina");
+            //return RedirectToAction("Models", "Home",new {id = mlCsv.Id });
+            return Json(new { redirectUrl = Url.Action("Models", "Home", new { id = mlCsv.Id }), stato = mlCsv.Stato });
+
         }
         private async Task<int> GetRequestStatus(MlCsv mlCsv, string userId)
         {
@@ -77,25 +78,29 @@ namespace TableManager.Controllers
                         return -1;
                 if (resposeDeserialized["status"] != null && (string)resposeDeserialized["status"] == "not_ready")
                     return 1;
-                if (mlCsv.Statistics == null)
-                    mlCsv.Statistics = new Statistics();
-                //devo cambiare il cast delle proprietà da double a float per adattarsi al modello Statistics
-                Statistics stat = new Statistics
+                var stat = _context.Statistics.FirstOrDefault(s => s.MlCsvId == mlCsv.Id);
+                if (stat == null)
                 {
-                    ModelPath = (string)resposeDeserialized["model_path"],
-                    GraphPath = (string)resposeDeserialized["graph_path"],
-                    R2 = (float)resposeDeserialized["stats"]["r2"],
-                    Mse = (float)resposeDeserialized["stats"]["mse"],
-                    Rmse = (float)resposeDeserialized["stats"]["rmse"],
-                    Coef = (float)resposeDeserialized["stats"]["coef"],
-                    Intercept = (float)resposeDeserialized["stats"]["intercept"],
-                    StartTime = (DateTime)resposeDeserialized["stats"]["start_time"],
-                    EndTime = (DateTime)resposeDeserialized["stats"]["end_time"],
-                    DurationSeconds = (float)resposeDeserialized["stats"]["duration_seconds"],
-                    ModelType = "regression"
-                };
+                    stat = new Statistics
+                    {
+                        MlCsvId = mlCsv.Id
+                    };
 
-                mlCsv.Statistics = stat;
+                    _context.Statistics.Add(stat);
+                }
+
+                stat.ModelPath = (string)resposeDeserialized["model_path"];
+                stat.GraphPath = (string)resposeDeserialized["graph_path"];
+                stat.R2 = (float)resposeDeserialized["stats"]["r2"];
+                stat.Mse = (float)resposeDeserialized["stats"]["mse"];
+                stat.Rmse = (float)resposeDeserialized["stats"]["rmse"];
+                stat.Coef = (float)resposeDeserialized["stats"]["coef"];
+                stat.Intercept = (float)resposeDeserialized["stats"]["intercept"];
+                stat.StartTime = (DateTime)resposeDeserialized["stats"]["start_time"];
+                stat.EndTime = (DateTime)resposeDeserialized["stats"]["end_time"];
+                stat.DurationSeconds = (float)resposeDeserialized["stats"]["duration_seconds"];
+                stat.ModelType = "regression";
+
                 _context.SaveChanges();
                 switch ((int)resposeDeserialized["status"])
                 {
@@ -138,10 +143,25 @@ namespace TableManager.Controllers
             */
 
         }
-        public async Task<IActionResult> RequestByModel(int modelId, int type, string headerJson)
+        public async Task<IActionResult> RequestByModel(int modelId, int type, string headerId)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var mlCsv = _context.MlCsv.Where(x => x.Id == modelId && userId == x.UserId && (x.Stato == 0 || x.Stato == -1 || x.Stato == 1)).FirstOrDefault();
 
+            //return Json(new { redirectUrl = Url.Action("Models", "Home", new { id = mlCsv.Id }) });
+            // mlCsv = _context.MlCsv.Where(x => x.IdCsv == tableId && userId == x.UserId).FirstOrDefault();
+            var result = _utilityObject.GetDataFrame(modelId, false, userId);
+            var headerJson = JsonConvert.DeserializeObject<List<int>>(headerId);
+            DataFrame df = result[0] as DataFrame;
+            if (type == 1 && headerJson.Count != 2)
+                return BadRequest("devi inserire almeno due colonne");
+            var name = result[1] as string;
+            var res = await Sendrequest(df, type, mlCsv.Name, userId, headerJson, mlCsv.Id);
+            mlCsv.Stato = await GetRequestStatus(mlCsv, userId);
+            mlCsv.type = type;
+            _context.SaveChanges();
+            if (mlCsv.Stato == -1)
+                return BadRequest("Errore nell'invio della richiesta");
             return Ok("ricarico la pagina");
         }
         [HttpPost]
@@ -151,6 +171,7 @@ namespace TableManager.Controllers
             [FromForm] int type,
             [FromForm] string headerId)
         {
+            //DATATO - NON USATO
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var mlCsv = _context.MlCsv.Where(x => x.IdCsv == tableId && userId == x.UserId).FirstOrDefault();
             if (mlCsv == null)//or userId == null
